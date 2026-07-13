@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text_styles.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_text_styles.dart';
 
 class CreatePlaylistDialog extends StatefulWidget {
   final Function(String name, String? description) onCreate;
@@ -70,7 +70,7 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: AppColors.accent),
+                borderSide: BorderSide(color: AppColors.accent),
               ),
             ),
             textInputAction: TextInputAction.next,
@@ -94,7 +94,7 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: AppColors.accent),
+                borderSide: BorderSide(color: AppColors.accent),
               ),
             ),
             textInputAction: TextInputAction.done,

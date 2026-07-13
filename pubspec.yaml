@@ -21,7 +21,6 @@ dependencies:
 
   # Media
   on_audio_query: ^2.9.0
-  flutter_media_metadata: ^1.0.0+1
 
   # Database
   sqflite: ^2.3.2

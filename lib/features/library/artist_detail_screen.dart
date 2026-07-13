@@ -51,9 +51,9 @@ class ArtistDetailScreen extends ConsumerWidget {
               ),
             ),
           ),
-          const SliverToBoxAdapter(
+          SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(16, 24, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
               child: Text('Popular Songs', style: AppTextStyles.headingSmall),
             ),
           ),

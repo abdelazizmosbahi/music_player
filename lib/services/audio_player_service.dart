@@ -16,7 +16,7 @@ class AudioPlayerService {
   // ─── Streams ────────────────────────────────────────────────
 
   Stream<Duration> get positionStream => player.positionStream;
-  Stream<Duration?> get durationStream => player.durationStream;
+  Stream<Duration> get durationStream => player.durationStream.map((d) => d ?? Duration.zero);
   Stream<PlayerState> get playerStateStream => player.playerStateStream;
   Stream<bool> get playingStream => player.playingStream;
   Stream<ProcessingState> get processingStateStream => player.processingStateStream;
@@ -28,9 +28,9 @@ class AudioPlayerService {
   // ─── Current State ──────────────────────────────────────────
 
   Song? get currentSong => _audioHandler.currentSong;
-  List<Song> get queue => _audioHandler.queue;
+  List<Song> get queue => _audioHandler.songQueue;
   int get currentIndex => _audioHandler.currentIndex;
-  RepeatMode get repeatMode => _audioHandler.repeatMode;
+  TrackRepeatMode get repeatMode => _audioHandler.repeatMode;
   bool get shuffleEnabled => _audioHandler.shuffleEnabled;
 
   // ─── Playback Controls ─────────────────────────────────────
@@ -84,10 +84,10 @@ class AudioPlayerService {
   }
 
   Future<void> addPlayNext(Song song) =>
-      _audioHandler.customAction('addPlayNext', song);
+      _audioHandler.customAction('addPlayNext', {'song': song});
 
   Future<void> addToQueue(Song song) =>
-      _audioHandler.customAction('addToQueue', song);
+      _audioHandler.customAction('addToQueue', {'song': song});
 
   Future<void> removeFromQueue(int index) =>
       _audioHandler.removeFromQueue(index);
@@ -101,7 +101,7 @@ class AudioPlayerService {
 
   void toggleShuffle() {
     final newMode = !shuffleEnabled;
-    _audioHandler.customAction('setShuffleMode', newMode);
+    _audioHandler.customAction('setShuffleMode', {'enabled': newMode});
   }
 
   void cycleRepeat() {

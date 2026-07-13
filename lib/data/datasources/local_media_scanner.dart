@@ -34,7 +34,7 @@ class LocalMediaScanner {
     }
 
     try {
-      final songs = await _audioQuery.querySongs(
+      final List<SongModel> songs = await _audioQuery.querySongs(
         sortType: SongSortType.DATE_ADDED,
         orderType: OrderType.DESC_OR_GREATER,
         uriType: UriType.EXTERNAL,
@@ -42,7 +42,7 @@ class LocalMediaScanner {
 
       return songs
           .where((audio) => _isSupportedFormat(audio.data))
-          .map(_mapToSong)
+          .map<Song>(_mapToSong)
           .toList();
     } catch (e) {
       return [];
@@ -77,7 +77,7 @@ class LocalMediaScanner {
   }
 
   /// Maps an AudioModel from on_audio_query to our Song model.
-  Song _mapToSong(AudioModel audio) {
+  Song _mapToSong(SongModel audio) {
     return Song(
       id: audio.id.toString(),
       title: audio.title.isNotEmpty ? audio.title : 'Unknown',

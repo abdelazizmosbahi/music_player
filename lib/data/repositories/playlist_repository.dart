@@ -1,3 +1,4 @@
+import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 import '../datasources/database_helper.dart';
 import '../models/playlist.dart';
@@ -76,7 +77,7 @@ class PlaylistRepository {
       'SELECT MAX(position) as maxPos FROM playlist_songs WHERE playlistId = ?',
       [playlistId],
     );
-    final maxPos = (Sqflite.firstIntValue(result) ?? -1) + 1;
+    final maxPos = (result.first['maxPos'] as int? ?? -1) + 1;
 
     await _db.insert('playlist_songs', {
       'playlistId': playlistId,
@@ -151,6 +152,6 @@ class PlaylistRepository {
       'SELECT COUNT(*) as count FROM playlist_songs WHERE playlistId = ? AND songId = ?',
       [playlistId, songId],
     );
-    return (Sqflite.firstIntValue(result) ?? 0) > 0;
+    return ((result.first['count'] as int?) ?? 0) > 0;
   }
 }

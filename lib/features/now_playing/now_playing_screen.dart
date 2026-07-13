@@ -6,6 +6,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/duration_formatter.dart';
 import '../../shared_widgets/album_art_display.dart';
 import '../../providers/media_provider.dart';
+import '../../services/audio_handler.dart';
 import '../../data/models/song.dart';
 import '../lyrics/lyrics_screen.dart';
 import '../queue/queue_screen.dart';
@@ -254,7 +255,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen>
           ),
           _ControlButton(
             icon: _repeatIcon(ref.watch(repeatModeProvider)),
-            isActive: ref.watch(repeatModeProvider) != RepeatMode.off,
+            isActive: ref.watch(repeatModeProvider) != TrackRepeatMode.off,
             size: 22,
             onTap: () => audioService.cycleRepeat(),
           ),
@@ -263,11 +264,11 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen>
     ).animate().fadeIn(delay: 400.ms, duration: 300.ms);
   }
 
-  IconData _repeatIcon(RepeatMode mode) {
+  IconData _repeatIcon(TrackRepeatMode mode) {
     switch (mode) {
-      case RepeatMode.one: return Icons.repeat_one_rounded;
-      case RepeatMode.all: return Icons.repeat_rounded;
-      case RepeatMode.off: return Icons.repeat_rounded;
+      case TrackRepeatMode.one: return Icons.repeat_one_rounded;
+      case TrackRepeatMode.all: return Icons.repeat_rounded;
+      case TrackRepeatMode.off: return Icons.repeat_rounded;
     }
   }
 

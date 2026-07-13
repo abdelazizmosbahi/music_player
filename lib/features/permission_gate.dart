@@ -88,14 +88,14 @@ class _PermissionGateState extends ConsumerState<PermissionGate> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: AppColors.background,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(color: AppColors.accent),
-              SizedBox(height: 16),
+              const CircularProgressIndicator(color: AppColors.accent),
+              const SizedBox(height: 16),
               Text('Scanning for music...', style: AppTextStyles.bodyMediumSecondary),
             ],
           ),

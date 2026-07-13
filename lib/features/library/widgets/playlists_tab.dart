@@ -4,8 +4,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../providers/media_provider.dart';
 import '../../../data/models/playlist.dart';
-import '../playlist_detail_screen.dart';
-import '../widgets/create_playlist_dialog.dart';
+import '../../playlists/playlist_detail_screen.dart';
+import '../../playlists/widgets/create_playlist_dialog.dart';
 
 class PlaylistsTab extends ConsumerWidget {
   const PlaylistsTab({super.key});

@@ -5,6 +5,7 @@ import '../data/repositories/favorites_repository.dart';
 import '../data/repositories/playlist_repository.dart';
 import '../data/datasources/lyrics_parser.dart';
 import '../data/models/lyric_line.dart';
+import '../services/audio_handler.dart';
 import '../services/audio_player_service.dart';
 import '../services/lyrics_sync_service.dart';
 import '../services/sleep_timer_service.dart';
@@ -65,7 +66,7 @@ final shuffleEnabledProvider = Provider<bool>((ref) {
   return audioService.shuffleEnabled;
 });
 
-final repeatModeProvider = Provider<RepeatMode>((ref) {
+final repeatModeProvider = Provider<TrackRepeatMode>((ref) {
   final audioService = ref.watch(audioServiceProvider);
   return audioService.repeatMode;
 });

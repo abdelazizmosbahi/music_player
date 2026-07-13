@@ -8,10 +8,10 @@ class LocalWaveAudioHandler extends BaseAudioHandler with SeekHandler {
   final List<Song> _queue = [];
   int _currentIndex = -1;
   bool _shuffleEnabled = false;
-  RepeatMode _repeatMode = RepeatMode.off;
+  TrackRepeatMode _repeatMode = TrackRepeatMode.off;
 
   AudioPlayer get player => _player;
-  List<Song> get queue => List.unmodifiable(_queue);
+  List<Song> get songQueue => List.unmodifiable(_queue);
   int get currentIndex => _currentIndex;
   Song? get currentSong => _currentIndex >= 0 && _currentIndex < _queue.length
       ? _queue[_currentIndex]
@@ -178,7 +178,7 @@ class LocalWaveAudioHandler extends BaseAudioHandler with SeekHandler {
     _queue.clear();
     _currentIndex = -1;
     await _player.stop();
-    queue.add([]);
+    queue.add(<MediaItem>[]);
     mediaItem.add(null);
   }
 
@@ -201,7 +201,7 @@ class LocalWaveAudioHandler extends BaseAudioHandler with SeekHandler {
 
   @override
   Future<void> skipToNext() async {
-    if (_repeatMode == RepeatMode.one) {
+    if (_repeatMode == TrackRepeatMode.one) {
       await _player.seek(Duration.zero);
       await _player.play();
       return;
@@ -210,7 +210,7 @@ class LocalWaveAudioHandler extends BaseAudioHandler with SeekHandler {
     if (_currentIndex < _queue.length - 1) {
       _currentIndex++;
       await _playCurrent();
-    } else if (_repeatMode == RepeatMode.all) {
+    } else if (_repeatMode == TrackRepeatMode.all) {
       _currentIndex = 0;
       await _playCurrent();
     }
@@ -226,7 +226,7 @@ class LocalWaveAudioHandler extends BaseAudioHandler with SeekHandler {
     if (_currentIndex > 0) {
       _currentIndex--;
       await _playCurrent();
-    } else if (_repeatMode == RepeatMode.all) {
+    } else if (_repeatMode == TrackRepeatMode.all) {
       _currentIndex = _queue.length - 1;
       await _playCurrent();
     }
@@ -240,31 +240,31 @@ class LocalWaveAudioHandler extends BaseAudioHandler with SeekHandler {
     }
   }
 
-  /// Sets the shuffle mode.
-  void setShuffleMode(bool enabled) {
-    _shuffleEnabled = enabled;
-    _player.setShuffleModeEnabled(enabled);
+  @override
+  Future<void> setShuffleMode(AudioServiceShuffleMode shuffleMode) async {
+    _shuffleEnabled = shuffleMode == AudioServiceShuffleMode.all;
+    _player.setShuffleModeEnabled(_shuffleEnabled);
   }
 
   /// Cycles through repeat modes: off -> all -> one -> off.
-  void cycleRepeatMode() {
+  void cycleTrackRepeatMode() {
     switch (_repeatMode) {
-      case RepeatMode.off:
-        _repeatMode = RepeatMode.all;
+      case TrackRepeatMode.off:
+        _repeatMode = TrackRepeatMode.all;
         _player.setLoopMode(LoopMode.all);
         break;
-      case RepeatMode.all:
-        _repeatMode = RepeatMode.one;
+      case TrackRepeatMode.all:
+        _repeatMode = TrackRepeatMode.one;
         _player.setLoopMode(LoopMode.one);
         break;
-      case RepeatMode.one:
-        _repeatMode = RepeatMode.off;
+      case TrackRepeatMode.one:
+        _repeatMode = TrackRepeatMode.off;
         _player.setLoopMode(LoopMode.off);
         break;
     }
   }
 
-  RepeatMode get repeatMode => _repeatMode;
+  TrackRepeatMode get repeatMode => _repeatMode;
   bool get shuffleEnabled => _shuffleEnabled;
 
   // ─── Private helpers ────────────────────────────────────────
@@ -287,7 +287,7 @@ class LocalWaveAudioHandler extends BaseAudioHandler with SeekHandler {
   }
 
   void _onSongComplete() {
-    if (_repeatMode == RepeatMode.one) {
+    if (_repeatMode == TrackRepeatMode.one) {
       _player.seek(Duration.zero);
       _player.play();
     } else {
@@ -305,16 +305,19 @@ class LocalWaveAudioHandler extends BaseAudioHandler with SeekHandler {
   Future<void> onCustomAction(String name, dynamic args) async {
     switch (name) {
       case 'setShuffleMode':
-        setShuffleMode(args as bool);
+        final enabled = (args as Map<String, dynamic>)['enabled'] as bool;
+        await setShuffleMode(enabled ? AudioServiceShuffleMode.all : AudioServiceShuffleMode.none);
         break;
       case 'cycleRepeatMode':
-        cycleRepeatMode();
+        cycleTrackRepeatMode();
         break;
       case 'addPlayNext':
-        await addPlayNext(args as Song);
+        final song = (args as Map<String, dynamic>)['song'] as Song;
+        await addPlayNext(song);
         break;
       case 'addToQueue':
-        await addToQueue(args as Song);
+        final song = (args as Map<String, dynamic>)['song'] as Song;
+        await addToQueue(song);
         break;
     }
   }
@@ -325,4 +328,4 @@ class LocalWaveAudioHandler extends BaseAudioHandler with SeekHandler {
 }
 
 /// Represents the repeat mode.
-enum RepeatMode { off, all, one }
+enum TrackRepeatMode { off, all, one }
