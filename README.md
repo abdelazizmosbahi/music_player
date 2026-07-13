@@ -4,14 +4,25 @@
 
 ---
 
+## Status
+
+**Builds successfully.** Debug APK is available at:
+```
+C:\mobile\build\app\outputs\flutter-apk\app-debug.apk
+```
+
+---
+
 ## Tech Stack
 
 | Layer | Choice |
 |---|---|
-| Framework | Flutter 3.x + Dart |
+| Framework | Flutter 3.44.6 + Dart 3.12.2 |
+| Android Gradle Plugin | 8.7.3 |
+| Kotlin | 2.1.0 |
 | State Management | Riverpod 2.x |
-| Audio Playback | `just_audio` + `audio_service` |
-| Media Scanning | `on_audio_query` |
+| Audio Playback | `just_audio` 0.9.46 + `audio_service` 0.18.19 |
+| Media Scanning | `on_audio_query` 2.9.0 |
 | Lyrics | Custom `.lrc` parser |
 | Local DB | `sqflite` |
 | Animations | `flutter_animate` |
@@ -31,7 +42,7 @@
 - Crossfade and gapless playback support
 
 ### Library
-- Full device media scan via Android MediaStore
+- Full device media scan via Android MediaStore (`on_audio_query`)
 - Browse by: Songs, Albums, Artists, Playlists
 - Album detail with song list
 - Artist detail with song list and album count
@@ -114,20 +125,20 @@
 
 ```
 lib/
-├── main.dart                          ← Entry point, audio service init
+├── main.dart                          ← Entry point, AudioService.init
 ├── app.dart                           ← MaterialApp with splash + permission gate
 ├── core/
-│   ├── theme/                         ← Colors, text styles, dark theme
+│   ├── theme/                         ← AppColors, AppTextStyles, AppTheme
 │   ├── constants.dart                 ← App-wide constants
 │   └── utils/                         ← Duration formatter, extensions
 ├── data/
 │   ├── models/                        ← Song, Album, Artist, Playlist, LyricLine, PlaybackHistory
-│   ├── datasources/                   ← SQLite DB, media scanner, LRC parser
+│   ├── datasources/                   ← SQLite DB, media scanner (on_audio_query), LRC parser
 │   └── repositories/                  ← Media, Playlist, Favorites repos
 ├── services/
-│   ├── audio_handler.dart             ← BaseAudioHandler (just_audio + audio_service)
+│   ├── audio_handler.dart             ← LocalWaveAudioHandler (BaseAudioHandler)
 │   ├── audio_player_service.dart      ← High-level playback API
-│   ├── lyrics_sync_service.dart       ← Real-time lyrics line detection
+│   ├── lyrics_sync_service.dart       ← Binary-search real-time lyrics sync
 │   ├── sleep_timer_service.dart       ← Countdown timer with callback
 │   └── dynamic_color_service.dart     ← Palette extraction from album art
 ├── providers/
@@ -148,49 +159,60 @@ lib/
 └── shared_widgets/                    ← MiniPlayer, SongTile, AlbumArt, etc.
 ```
 
-**56 Dart files, ~6,300 lines of code.**
+**56 Dart files, ~6,400 lines of code.**
 
 ---
 
-## Setup & Run
+## Setup
 
 ### Prerequisites
 
-1. **Flutter SDK 3.16+** — [Install Flutter](https://docs.flutter.dev/get-started/install)
-2. **Android Studio** or **VS Code** with Flutter/Dart plugins
+1. **Flutter SDK 3.44+** — https://docs.flutter.dev/get-started/install/windows/mobile
+2. **Android SDK 36** + **BuildTools 28.0.3** + **NDK 28.2.13676358**
 3. **Android device** or emulator (API 26+)
 
-### Steps
+### First-Time Setup
 
 ```bash
-# 1. Navigate to project
 cd C:\mobile
 
-# 2. Generate native platform files (Android, iOS)
+# Generate native Android project files
 flutter create . --org com.localwave
 
-# 3. Install dependencies
+# Install dependencies
 flutter pub get
-
-# 4. Run on connected device
-flutter run
 ```
 
-### First Launch
+### Important: Patched Dependencies
 
-1. The app shows a splash screen, then a **permission gate**
-2. Tap **"Allow Access"** to grant audio storage permission
-3. The app auto-scans your device for music files
-4. Your library appears on the Home screen
+This project requires two patches to work with the current Android toolchain. These are already applied in the repo:
+
+1. **`on_audio_query_android` namespace** — The plugin's `build.gradle` is missing a `namespace` declaration required by AGP 8.x. Patched at:
+   ```
+   %PUB_CACHE%\hosted\pub.dev\on_audio_query_android-1.1.0\android\build.gradle
+   ```
+   Added `namespace 'com.lucasjosino.on_audio_query'` and JVM target 17.
+
+2. **AGP version** — `settings.gradle.kts` uses AGP 8.7.3 (not 9.x) because `on_audio_query_android` hasn't been updated for AGP 9.
+
+If you re-run `flutter pub get` after a cache clear, re-apply patch #1.
+
+### Build APK
+
+```bash
+flutter build apk --debug --android-skip-build-dependency-validation
+```
+
+> **Note:** `--android-skip-build-dependency-validation` is needed because the project uses AGP 8.7.3 which Flutter 3.44 flags as "soon unsupported." This flag bypasses that check.
 
 ---
 
-## Build APK
+## APK Output
 
 ### Debug APK (for testing)
 
 ```bash
-flutter build apk --debug
+flutter build apk --debug --android-skip-build-dependency-validation
 ```
 
 **Output location:**
@@ -201,31 +223,37 @@ C:\mobile\build\app\outputs\flutter-apk\app-debug.apk
 ### Release APK (for distribution)
 
 ```bash
-flutter build apk --release
+flutter build apk --release --android-skip-build-dependency-validation
 ```
 
 **Output location:**
 ```
-C:\mobile\build\outputs\apk\release\app-release.apk
+C:\mobile\build\app\outputs\flutter-apk\app-release.apk
 ```
 
 ### Split APKs by ABI (smaller size)
 
 ```bash
-flutter build apk --split-per-abi
+flutter build apk --split-per-abi --android-skip-build-dependency-validation
 ```
 
 **Output locations:**
 ```
-C:\mobile\build\outputs\apk\release\app-armeabi-v7a-release.apk
-C:\mobile\build\outputs\apk\release\app-arm64-v8a-release.apk
-C:\mobile\build\outputs\apk\release\app-x86_64-release.apk
+C:\mobile\build\app\outputs\flutter-apk\app-armeabi-v7a-release.apk
+C:\mobile\build\app\outputs\flutter-apk\app-arm64-v8a-release.apk
+C:\mobile\build\app\outputs\flutter-apk\app-x86_64-release.apk
+```
+
+### Install via ADB
+
+```bash
+adb install C:\mobile\build\app\outputs\flutter-apk\app-debug.apk
 ```
 
 ### App Bundle (for Play Store)
 
 ```bash
-flutter build appbundle
+flutter build appbundle --android-skip-build-dependency-validation
 ```
 
 **Output location:**
@@ -237,17 +265,15 @@ C:\mobile\build\app\outputs\bundle\release\app-release.aab
 
 ## Signing the Release APK
 
-For a signed release APK:
-
 ```bash
 # Generate a keystore (one-time)
 keytool -genkey -v -keystore C:\mobile\android\app\localwave-key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias localwave
 
 # Build with release signing
-flutter build apk --release
+flutter build apk --release --android-skip-build-dependency-validation
 ```
 
-Or configure `android/app/build.gradle` with your signing config.
+Or configure `android/app/build.gradle.kts` with your signing config.
 
 ---
 
@@ -278,7 +304,7 @@ Place `.lrc` files alongside your audio files with the same name:
 ```
 /sdcard/Music/
 ├── song.mp3
-├── song.lrc          ← lyrics file
+├── song.lrc
 ├── another_song.flac
 ├── another_song.lrc
 ```
@@ -296,18 +322,36 @@ Place `.lrc` files alongside your audio files with the same name:
 
 ## Key Packages
 
-| Package | Purpose |
-|---|---|
-| `just_audio` | Audio playback engine |
-| `audio_service` | Background playback, notification controls |
-| `on_audio_query` | Device media store scanning |
-| `sqflite` | Local SQLite database |
-| `flutter_riverpod` | State management |
-| `flutter_animate` | Animations and transitions |
-| `palette_generator` | Dynamic color extraction |
-| `permission_handler` | Runtime permissions |
-| `google_fonts` | Inter font |
-| `uuid` | Unique ID generation |
+| Package | Version | Purpose |
+|---|---|---|
+| `just_audio` | 0.9.46 | Audio playback engine |
+| `audio_service` | 0.18.19 | Background playback, notification controls |
+| `on_audio_query` | 2.9.0 | Device media store scanning |
+| `sqflite` | 2.3.x | Local SQLite database |
+| `flutter_riverpod` | 2.6.1 | State management |
+| `flutter_animate` | 4.x | Animations and transitions |
+| `palette_generator` | 0.3.3+7 | Dynamic color extraction |
+| `permission_handler` | 11.4.0 | Runtime permissions |
+| `google_fonts` | 6.x | Inter font |
+| `uuid` | 4.x | Unique ID generation |
+
+---
+
+## Known Issues
+
+- **No app icon yet** — Default Flutter icon. Place your icon at `assets/icon/app_icon.png` and run `dart run flutter_launcher_icons`.
+- **No splash logo yet** — Default white splash. Place your logo at `assets/splash/splash_logo.png` and run `dart run flutter_native_splash:create`.
+- **`on_audio_query_android` patch** — Requires manual patch to the pub cache (see Setup section) on fresh installs.
+- **Palette generator discontinued** — The `palette_generator` package is marked discontinued on pub.dev. Consider migrating to an alternative if it stops receiving updates.
+
+---
+
+## Git History
+
+```
+e0d25cd fix: resolve all compilation errors for debug APK build
+e27686b feat: LocalWave - offline music player with Spotify-style dark UI
+```
 
 ---
 
