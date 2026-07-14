@@ -8,9 +8,16 @@ import 'audio_handler.dart';
 class AudioPlayerService {
   final LocalWaveAudioHandler _audioHandler;
   final MediaRepository _mediaRepository = MediaRepository();
+  final bool _isStub;
 
-  AudioPlayerService(this._audioHandler);
+  AudioPlayerService(this._audioHandler) : _isStub = false;
 
+  /// Creates a stub service that does nothing — used when audio init fails.
+  AudioPlayerService.createStub()
+      : _audioHandler = LocalWaveAudioHandler.stub(),
+        _isStub = true;
+
+  bool get isStub => _isStub;
   AudioPlayer get player => _audioHandler.player;
 
   // ─── Streams ────────────────────────────────────────────────

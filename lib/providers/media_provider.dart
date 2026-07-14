@@ -13,8 +13,20 @@ import '../services/dynamic_color_service.dart';
 
 // ─── Audio Service ────────────────────────────────────────────
 
+/// Holds the audio service instance. Starts as a stub; upgraded after init.
+class AudioServiceReady extends StateNotifier<AudioPlayerService> {
+  AudioServiceReady() : super(AudioPlayerService.createStub());
+
+  void setReady(AudioPlayerService svc) => state = svc;
+}
+
+final audioServiceReadyProvider =
+    StateNotifierProvider<AudioServiceReady, AudioPlayerService>(
+  (ref) => AudioServiceReady(),
+);
+
 final audioServiceProvider = Provider<AudioPlayerService>((ref) {
-  throw UnimplementedError('AudioService not initialized — override in main.dart');
+  return ref.watch(audioServiceReadyProvider);
 });
 
 // ─── Repositories ─────────────────────────────────────────────

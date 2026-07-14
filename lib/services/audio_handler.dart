@@ -9,6 +9,7 @@ class LocalWaveAudioHandler extends BaseAudioHandler with SeekHandler {
   int _currentIndex = -1;
   bool _shuffleEnabled = false;
   TrackRepeatMode _repeatMode = TrackRepeatMode.off;
+  final bool _isStub;
 
   AudioPlayer get player => _player;
   List<Song> get songQueue => List.unmodifiable(_queue);
@@ -17,9 +18,12 @@ class LocalWaveAudioHandler extends BaseAudioHandler with SeekHandler {
       ? _queue[_currentIndex]
       : null;
 
-  LocalWaveAudioHandler() {
+  LocalWaveAudioHandler() : _isStub = false {
     _init();
   }
+
+  /// Stub handler — does nothing. Used when AudioService.init fails.
+  LocalWaveAudioHandler.stub() : _isStub = true;
 
   void _init() {
     // Listen to player state changes and broadcast them
