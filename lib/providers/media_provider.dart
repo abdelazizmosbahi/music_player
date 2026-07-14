@@ -43,9 +43,9 @@ final dynamicColorServiceProvider = Provider<DynamicColorService>((ref) => Dynam
 
 // ─── Derived Player State (from real audio service) ──────────
 
-final currentSongProvider = Provider<Song?>((ref) {
+final currentSongProvider = StreamProvider<Song?>((ref) {
   final audioService = ref.watch(audioServiceProvider);
-  return audioService.currentSong;
+  return audioService.currentSongStream;
 });
 
 final isPlayingProvider = StreamProvider<bool>((ref) {
@@ -141,7 +141,7 @@ final searchResultsProvider = FutureProvider<List<Song>>((ref) async {
 // ─── Lyrics ───────────────────────────────────────────────────
 
 final currentSongLyricsProvider = FutureProvider<List<LyricLine>>((ref) async {
-  final currentSong = ref.watch(currentSongProvider);
+  final currentSong = ref.watch(currentSongProvider).valueOrNull;
   if (currentSong == null) return [];
   try {
     final lrcPath = currentSong.filePath

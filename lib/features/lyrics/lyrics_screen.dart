@@ -37,7 +37,7 @@ class _LyricsScreenState extends ConsumerState<LyricsScreen> {
   @override
   Widget build(BuildContext context) {
     final lyricsAsync = ref.watch(currentSongLyricsProvider);
-    final currentSong = ref.watch(currentSongProvider);
+    final currentSong = ref.watch(currentSongProvider).valueOrNull;
     final positionAsync = ref.watch(playerPositionProvider);
     final lyricsSync = ref.read(lyricsSyncServiceProvider);
 

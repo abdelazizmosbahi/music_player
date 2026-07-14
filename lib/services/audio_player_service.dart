@@ -28,6 +28,24 @@ class AudioPlayerService {
   Stream<bool> get playingStream => player.playingStream;
   Stream<ProcessingState> get processingStateStream => player.processingStateStream;
 
+  /// Stream of the current Song object, derived from audio_service's mediaItem.
+  Stream<Song?> get currentSongStream => _audioHandler.mediaItem.map((item) {
+        if (item == null) return null;
+        final id = item.extras?['id'] as String? ?? '';
+        final filePath = item.extras?['filePath'] as String? ?? '';
+        final albumArtPath = item.extras?['albumArtPath'] as String?;
+        return Song(
+          id: id,
+          title: item.title ?? 'Unknown',
+          artist: item.artist ?? 'Unknown',
+          album: item.album ?? 'Unknown',
+          duration: item.duration ?? Duration.zero,
+          filePath: filePath,
+          albumArtPath: albumArtPath,
+          dateAdded: DateTime.now(),
+        );
+      });
+
   Duration get position => player.position;
   Duration get duration => player.duration ?? Duration.zero;
   bool get isPlaying => player.playing;

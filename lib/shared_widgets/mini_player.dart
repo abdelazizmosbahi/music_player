@@ -13,7 +13,8 @@ class MiniPlayer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final currentSong = ref.watch(currentSongProvider);
+    final currentSongAsync = ref.watch(currentSongProvider);
+    final currentSong = currentSongAsync.valueOrNull;
     final isPlayingAsync = ref.watch(isPlayingProvider);
     final isPlaying = isPlayingAsync.valueOrNull ?? false;
 
