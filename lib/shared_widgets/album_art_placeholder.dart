@@ -28,6 +28,9 @@ class AlbumArtPlaceholder extends StatelessWidget {
         artworkBorder: borderRadius,
         artworkWidth: size,
         artworkHeight: size,
+        size: 256,
+        quality: 100,
+        artworkQuality: FilterQuality.high,
         nullArtworkWidget: _buildGradient(),
       );
     }

@@ -64,6 +64,9 @@ class AlbumArtDisplay extends StatelessWidget {
         artworkBorder: BorderRadius.circular(borderRadius),
         artworkWidth: size,
         artworkHeight: size,
+        size: 512,
+        quality: 100,
+        artworkQuality: FilterQuality.high,
         nullArtworkWidget: _buildPlaceholder(),
       );
     }

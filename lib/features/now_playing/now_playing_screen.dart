@@ -18,26 +18,9 @@ class NowPlayingScreen extends ConsumerStatefulWidget {
   ConsumerState<NowPlayingScreen> createState() => _NowPlayingScreenState();
 }
 
-class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen>
-    with SingleTickerProviderStateMixin {
+class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
   bool _isDragging = false;
   double _dragValue = 0;
-  late AnimationController _rotateController;
-
-  @override
-  void initState() {
-    super.initState();
-    _rotateController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 20),
-    );
-  }
-
-  @override
-  void dispose() {
-    _rotateController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,12 +40,6 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen>
     final position = positionAsync.valueOrNull ?? Duration.zero;
     final duration = durationAsync.valueOrNull ?? song.duration;
 
-    if (isPlaying) {
-      if (!_rotateController.isAnimating) _rotateController.repeat();
-    } else {
-      _rotateController.stop();
-    }
-
     final bgColor = HSLColor.fromAHSL(1.0, (song.title.hashCode % 360).abs().toDouble(), 0.5, 0.2).toColor();
 
     final sliderPosition = _isDragging
@@ -72,6 +49,8 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen>
     final progress = duration.inMilliseconds > 0
         ? (sliderPosition.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0)
         : 0.0;
+
+    final double artSize = MediaQuery.of(context).size.width * 0.65;
 
     return Scaffold(
       body: AnimatedContainer(
@@ -89,34 +68,23 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen>
             children: [
               _buildTopBar(context, song),
               const SizedBox(height: 8),
-              // Album art
               Expanded(
                 flex: 5,
                 child: Center(
                   child: Hero(
                     tag: 'album_art_${song.id}',
-                    child: RotationTransition(
-                      turns: _rotateController,
-                      child: AlbumArtDisplay(
-                        songId: int.tryParse(song.id),
-                        title: song.title,
-                        size: MediaQuery.of(context).size.width * 0.65,
-                        borderRadius: 20,
-                      ),
+                    child: AlbumArtDisplay(
+                      songId: int.tryParse(song.id),
+                      title: song.title,
+                      size: artSize,
+                      borderRadius: 20,
                     ),
                   ),
                 ),
-              ).animate().fadeIn(duration: 400.ms).scale(
-                    begin: const Offset(0.92, 0.92), end: const Offset(1, 1),
-                    duration: 450.ms, curve: Curves.easeOutCubic,
-                  ),
-              // Song info
+              ),
               Expanded(flex: 2, child: _buildSongInfo(song)),
-              // Progress bar
               _buildProgressBar(sliderPosition, duration, progress, audioService),
-              // Controls
               Expanded(flex: 2, child: _buildControls(isPlaying, audioService)),
-              // Bottom actions
               _buildBottomActions(),
               const SizedBox(height: 12),
             ],
