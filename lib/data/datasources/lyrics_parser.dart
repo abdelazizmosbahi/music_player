@@ -129,6 +129,33 @@ class LrcParser {
     return buffer.toString();
   }
 
+  /// Saves a list of LyricLines as an .lrc file.
+  static Future<void> saveFile(String filePath, List<LyricLine> lyrics) async {
+    final file = File(filePath);
+    await file.parent.create(recursive: true);
+    await file.writeAsString(toLrc(lyrics));
+  }
+
+  /// Auto-detects whether [text] is already LRC format or plain text,
+  /// and returns parsed LyricLines accordingly.
+  static List<LyricLine> autoParse(String text) {
+    final timestampRegex = RegExp(r'\[\d{1,2}:\d{2}(?:\.\d{1,3})?\]');
+    final lines = text.split('\n');
+    int lrcCount = 0;
+    for (final line in lines) {
+      if (timestampRegex.hasMatch(line)) lrcCount++;
+    }
+
+    // If more than half the non-empty lines have timestamps, treat as LRC
+    final nonEmpty = lines.where((l) => l.trim().isNotEmpty).length;
+    if (nonEmpty > 0 && lrcCount / nonEmpty > 0.5) {
+      return parseLrc(text);
+    }
+
+    // Otherwise treat as plain text with auto-timing
+    return fromPlainText(text);
+  }
+
   /// Generates a basic LRC file from plain text with auto-timed intervals.
   /// Each line is spaced [interval] apart, starting from [startOffset].
   static List<LyricLine> fromPlainText(

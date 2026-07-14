@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 import '../data/models/song.dart';
 import '../data/repositories/media_repository.dart';
 import '../data/repositories/favorites_repository.dart';
@@ -140,16 +142,46 @@ final searchResultsProvider = FutureProvider<List<Song>>((ref) async {
 
 // ─── Lyrics ───────────────────────────────────────────────────
 
+/// Returns the app documents lyrics directory path.
+Future<String> _lyricsDir() async {
+  final dir = await getApplicationDocumentsDirectory();
+  final lyricsDir = Directory('${dir.path}/lyrics');
+  if (!await lyricsDir.exists()) {
+    await lyricsDir.create(recursive: true);
+  }
+  return lyricsDir.path;
+}
+
+/// Returns the .lrc file path for a given song ID in the app docs dir.
+Future<String> savedLyricsPath(String songId) async {
+  final dir = await _lyricsDir();
+  return '$dir/$songId.lrc';
+}
+
+/// Tries to load lyrics from saved (app docs) first, then from .lrc next to audio.
 final currentSongLyricsProvider = FutureProvider<List<LyricLine>>((ref) async {
   final currentSong = ref.watch(currentSongProvider).valueOrNull;
   if (currentSong == null) return [];
+
+  // 1. Try saved lyrics in app documents dir
+  try {
+    final savedPath = await savedLyricsPath(currentSong.id);
+    final savedFile = File(savedPath);
+    if (await savedFile.exists()) {
+      final lyrics = await LrcParser.parseFile(savedPath);
+      if (lyrics.isNotEmpty) return lyrics;
+    }
+  } catch (_) {}
+
+  // 2. Try .lrc file next to the audio file
   try {
     final lrcPath = currentSong.filePath
         .replaceAll(RegExp(r'\.(mp3|m4a|flac|ogg|wav|opus)$'), '.lrc');
-    return await LrcParser.parseFile(lrcPath);
-  } catch (e) {
-    return [];
-  }
+    final lyrics = await LrcParser.parseFile(lrcPath);
+    if (lyrics.isNotEmpty) return lyrics;
+  } catch (_) {}
+
+  return [];
 });
 
 // ─── Media Scanner State ──────────────────────────────────────
