@@ -60,6 +60,7 @@ class SongTile extends StatelessWidget {
                 AlbumArtPlaceholder(
                   size: isCompact ? 40 : 48,
                   title: song.title,
+                  songId: int.tryParse(song.id),
                   borderRadius: BorderRadius.circular(isCompact ? 6 : 8),
                 ),
               const SizedBox(width: 12),

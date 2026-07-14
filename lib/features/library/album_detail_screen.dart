@@ -91,6 +91,7 @@ class AlbumDetailScreen extends ConsumerWidget {
           padding: const EdgeInsets.only(top: 60),
           child: AlbumArtPlaceholder(
             size: 180, title: album.title,
+            songId: album.songs.isNotEmpty ? int.tryParse(album.songs.first.id) : null,
             borderRadius: BorderRadius.circular(12), icon: Icons.album_rounded,
           ),
         ),

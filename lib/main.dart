@@ -54,7 +54,7 @@ Future<void> _initAudioService() async {
         androidNotificationChannelName: 'LocalWave Music',
         androidNotificationOngoing: true,
         androidStopForegroundOnPause: true,
-        androidNotificationIcon: 'mipmap/ic_launcher',
+        androidNotificationIcon: 'drawable/notification_icon',
         fastForwardInterval: Duration(seconds: 10),
         rewindInterval: Duration(seconds: 10),
       ),

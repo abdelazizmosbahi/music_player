@@ -55,6 +55,7 @@ class MiniPlayer extends ConsumerWidget {
                     child: AlbumArtPlaceholder(
                       size: 44,
                       title: currentSong.title,
+                      songId: int.tryParse(currentSong.id),
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),

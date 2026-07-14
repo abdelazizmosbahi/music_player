@@ -98,6 +98,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen>
                     child: RotationTransition(
                       turns: _rotateController,
                       child: AlbumArtDisplay(
+                        songId: int.tryParse(song.id),
                         title: song.title,
                         size: MediaQuery.of(context).size.width * 0.65,
                         borderRadius: 20,

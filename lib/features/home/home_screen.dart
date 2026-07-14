@@ -228,13 +228,14 @@ class _RecentlyPlayedSongs extends ConsumerWidget {
             onTap: () {
               ref.read(audioServiceProvider).playSong(song, fromList: songs);
             },
-            child: Column(
-              children: [
-                AlbumArtPlaceholder(
-                  size: 140,
-                  title: song.title,
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                    child: Column(
+                      children: [
+                        AlbumArtPlaceholder(
+                          size: 140,
+                          title: song.title,
+                          songId: int.tryParse(song.id),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                 const SizedBox(height: 8),
                 SizedBox(
                   width: 140,

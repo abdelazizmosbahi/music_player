@@ -1,10 +1,12 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:on_audio_query/on_audio_query.dart';
 import '../core/theme/app_colors.dart';
 
 class AlbumArtPlaceholder extends StatelessWidget {
   final double size;
   final String? title;
+  final int? songId;
   final BorderRadius borderRadius;
   final IconData icon;
 
@@ -12,12 +14,27 @@ class AlbumArtPlaceholder extends StatelessWidget {
     super.key,
     this.size = 48,
     this.title,
+    this.songId,
     this.borderRadius = const BorderRadius.all(Radius.circular(8)),
     this.icon = Icons.music_note_rounded,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (songId != null) {
+      return QueryArtworkWidget(
+        id: songId!,
+        type: ArtworkType.AUDIO,
+        artworkBorder: borderRadius,
+        artworkWidth: size,
+        artworkHeight: size,
+        nullArtworkWidget: _buildGradient(),
+      );
+    }
+    return _buildGradient();
+  }
+
+  Widget _buildGradient() {
     final gradient = AppColors.gradientFromString(title ?? 'music');
 
     return Container(
@@ -38,14 +55,12 @@ class AlbumArtPlaceholder extends StatelessWidget {
   }
 }
 
-/// Generates a deterministic color from a string.
 Color colorFromString(String input) {
   final hash = input.hashCode;
   final hue = (hash % 360).abs().toDouble();
   return HSLColor.fromAHSL(1.0, hue, 0.65, 0.55).toColor();
 }
 
-/// Generates a random pastel-like color for testing.
 Color randomColor() {
   final random = Random();
   return HSLColor.fromAHSL(

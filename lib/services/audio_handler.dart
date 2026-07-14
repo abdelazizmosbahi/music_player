@@ -88,12 +88,16 @@ class LocalWaveAudioHandler extends BaseAudioHandler with SeekHandler {
 
   /// Converts a Song to a MediaItem for audio_service.
   MediaItem _songToMediaItem(Song song) {
+    final artUri = song.id.isNotEmpty
+        ? Uri.parse('content://media/external/audio/media/${song.id}/albumart')
+        : null;
     return MediaItem(
       id: song.filePath,
       title: song.title,
       artist: song.artist,
       album: song.album,
       duration: song.duration,
+      artUri: artUri,
       extras: {
         'id': song.id,
         'filePath': song.filePath,

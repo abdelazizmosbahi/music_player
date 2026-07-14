@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:on_audio_query/on_audio_query.dart';
 import '../core/theme/app_colors.dart';
 import '../services/dynamic_color_service.dart';
 
 class AlbumArtDisplay extends StatelessWidget {
   final String? artPath;
   final String? title;
+  final int? songId;
   final double size;
   final double borderRadius;
   final bool showShadow;
@@ -14,6 +16,7 @@ class AlbumArtDisplay extends StatelessWidget {
     super.key,
     this.artPath,
     this.title,
+    this.songId,
     this.size = 300,
     this.borderRadius = 16,
     this.showShadow = true,
@@ -54,19 +57,33 @@ class AlbumArtDisplay extends StatelessWidget {
   }
 
   Widget _buildContent() {
+    if (songId != null) {
+      return QueryArtworkWidget(
+        id: songId!,
+        type: ArtworkType.AUDIO,
+        artworkBorder: BorderRadius.circular(borderRadius),
+        artworkWidth: size,
+        artworkHeight: size,
+        nullArtworkWidget: _buildPlaceholder(),
+      );
+    }
+    return _buildPlaceholder();
+  }
+
+  Widget _buildPlaceholder() {
     final gradient = DynamicColorService.gradientFromTitle(title ?? 'music');
 
     return Container(
+      width: size,
+      height: size,
       decoration: BoxDecoration(gradient: gradient),
       child: Stack(
         children: [
-          // Subtle pattern overlay
           Positioned.fill(
             child: CustomPaint(
               painter: _AlbumArtPatternPainter(),
             ),
           ),
-          // Music note icon
           Center(
             child: Icon(
               Icons.music_note_rounded,
@@ -80,7 +97,6 @@ class AlbumArtDisplay extends StatelessWidget {
   }
 }
 
-/// A subtle diagonal line pattern for album art placeholders.
 class _AlbumArtPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
