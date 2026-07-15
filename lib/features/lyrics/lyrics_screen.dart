@@ -111,10 +111,8 @@ class _LyricsScreenState extends ConsumerState<LyricsScreen> {
               Expanded(
                 child: lyricsAsync.when(
                   data: (lyrics) {
-                    if (lyrics.isEmpty) {
-                      if (_isEditing) return _buildPasteView();
-                      return _buildNoLyrics();
-                    }
+                    if (_isEditing) return _buildPasteView();
+                    if (lyrics.isEmpty) return _buildNoLyrics();
 
                     return positionAsync.when(
                       data: (position) {
@@ -172,18 +170,23 @@ class _LyricsScreenState extends ConsumerState<LyricsScreen> {
               ),
             ],
           ),
-          if (hasLyrics)
-            IconButton(
-              onPressed: () => setState(() => _isEditing = true),
-              icon: const Icon(Icons.edit_rounded, size: 22),
-              tooltip: 'Edit Lyrics',
-            )
-          else
-            IconButton(
-              onPressed: () => setState(() => _isEditing = true),
-              icon: const Icon(Icons.add_rounded, size: 22),
-              tooltip: 'Add Lyrics',
+          IconButton(
+            onPressed: () {
+              // If editing existing lyrics, pre-populate the controller
+              if (hasLyrics && !_isEditing) {
+                final existing = lyricsAsync.valueOrNull;
+                if (existing != null) {
+                  _pasteController.text = LrcParser.toLrc(existing);
+                }
+              }
+              setState(() => _isEditing = true);
+            },
+            icon: Icon(
+              _isEditing ? Icons.close_rounded : Icons.edit_rounded,
+              size: 22,
             ),
+            tooltip: _isEditing ? 'Cancel Edit' : (hasLyrics ? 'Edit Lyrics' : 'Add Lyrics'),
+          ),
         ],
       ),
     );

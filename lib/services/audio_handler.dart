@@ -11,6 +11,12 @@ class LocalWaveAudioHandler extends BaseAudioHandler with SeekHandler {
   TrackRepeatMode _repeatMode = TrackRepeatMode.off;
   final bool _isStub;
 
+  /// Broadcast streams for reactive shuffle/repeat state.
+  final StreamController<bool> _shuffleController = StreamController<bool>.broadcast();
+  final StreamController<TrackRepeatMode> _repeatController = StreamController<TrackRepeatMode>.broadcast();
+  Stream<bool> get shuffleStream => _shuffleController.stream;
+  Stream<TrackRepeatMode> get repeatStream => _repeatController.stream;
+
   AudioPlayer get player => _player;
   List<Song> get songQueue => List.unmodifiable(_queue);
   int get currentIndex => _currentIndex;
@@ -252,6 +258,7 @@ class LocalWaveAudioHandler extends BaseAudioHandler with SeekHandler {
   Future<void> setShuffleMode(AudioServiceShuffleMode shuffleMode) async {
     _shuffleEnabled = shuffleMode == AudioServiceShuffleMode.all;
     _player.setShuffleModeEnabled(_shuffleEnabled);
+    _shuffleController.add(_shuffleEnabled);
   }
 
   /// Cycles through repeat modes: off -> all -> one -> off.
@@ -270,6 +277,7 @@ class LocalWaveAudioHandler extends BaseAudioHandler with SeekHandler {
         _player.setLoopMode(LoopMode.off);
         break;
     }
+    _repeatController.add(_repeatMode);
   }
 
   TrackRepeatMode get repeatMode => _repeatMode;

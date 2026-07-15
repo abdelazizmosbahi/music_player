@@ -75,14 +75,14 @@ final queueIndexProvider = Provider<int>((ref) {
   return audioService.currentIndex;
 });
 
-final shuffleEnabledProvider = Provider<bool>((ref) {
+final shuffleEnabledProvider = StreamProvider<bool>((ref) {
   final audioService = ref.watch(audioServiceProvider);
-  return audioService.shuffleEnabled;
+  return audioService.shuffleStream;
 });
 
-final repeatModeProvider = Provider<TrackRepeatMode>((ref) {
+final repeatModeProvider = StreamProvider<TrackRepeatMode>((ref) {
   final audioService = ref.watch(audioServiceProvider);
-  return audioService.repeatMode;
+  return audioService.repeatStream;
 });
 
 // ─── Song Lists ───────────────────────────────────────────────

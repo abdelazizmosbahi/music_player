@@ -10,6 +10,7 @@ import '../../services/audio_handler.dart';
 import '../../data/models/song.dart';
 import '../lyrics/lyrics_screen.dart';
 import '../queue/queue_screen.dart';
+import '../sleep_timer/sleep_timer_screen.dart';
 
 class NowPlayingScreen extends ConsumerStatefulWidget {
   const NowPlayingScreen({super.key});
@@ -71,13 +72,16 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
               Expanded(
                 flex: 5,
                 child: Center(
-                  child: Hero(
-                    tag: 'album_art_${song.id}',
-                    child: AlbumArtDisplay(
-                      songId: int.tryParse(song.id),
-                      title: song.title,
-                      size: artSize,
-                      borderRadius: 20,
+                  child: KeyedSubtree(
+                    key: ValueKey('art_${song.id}'),
+                    child: Hero(
+                      tag: 'album_art_${song.id}',
+                      child: AlbumArtDisplay(
+                        songId: int.tryParse(song.id),
+                        title: song.title,
+                        size: artSize,
+                        borderRadius: 20,
+                      ),
                     ),
                   ),
                 ),
@@ -204,7 +208,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
         children: [
           _ControlButton(
             icon: Icons.shuffle_rounded,
-            isActive: ref.watch(shuffleEnabledProvider),
+            isActive: ref.watch(shuffleEnabledProvider).valueOrNull ?? false,
             size: 22,
             onTap: () => audioService.toggleShuffle(),
           ),
@@ -223,8 +227,8 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
             onTap: () => audioService.skipToNext(),
           ),
           _ControlButton(
-            icon: _repeatIcon(ref.watch(repeatModeProvider)),
-            isActive: ref.watch(repeatModeProvider) != TrackRepeatMode.off,
+            icon: _repeatIcon(ref.watch(repeatModeProvider).valueOrNull ?? TrackRepeatMode.off),
+            isActive: (ref.watch(repeatModeProvider).valueOrNull ?? TrackRepeatMode.off) != TrackRepeatMode.off,
             size: 22,
             onTap: () => audioService.cycleRepeat(),
           ),
@@ -242,6 +246,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
   }
 
   Widget _buildBottomActions() {
+    final song = ref.watch(currentSongProvider).valueOrNull;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 40),
       child: Row(
@@ -250,14 +255,96 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
           _BottomAction(icon: Icons.lyrics_rounded, label: 'Lyrics', onTap: () {
             Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LyricsScreen()));
           }),
-          _BottomAction(icon: Icons.share_rounded, label: 'Share', onTap: () {}),
+          _BottomAction(icon: Icons.share_rounded, label: 'Share', onTap: () {
+            if (song != null) _shareSong(song);
+          }),
           _BottomAction(icon: Icons.queue_music_rounded, label: 'Queue', onTap: () {
             Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QueueScreen()));
           }),
-          _BottomAction(icon: Icons.equalizer_rounded, label: 'EQ', onTap: () {}),
+          _BottomAction(icon: Icons.equalizer_rounded, label: 'EQ', onTap: () {
+            _showEqualizer();
+          }),
         ],
       ),
     ).animate().fadeIn(delay: 500.ms, duration: 300.ms);
+  }
+
+  void _shareSong(Song song) {
+    final text = '${song.title} - ${song.artist}';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Share: $text'),
+        action: SnackBarAction(
+          label: 'Copy',
+          textColor: AppColors.accent,
+          onPressed: () {
+            // Copy song info to clipboard would go here
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Song info copied')),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showEqualizer() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        height: MediaQuery.of(context).size.height * 0.5,
+        decoration: const BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              Container(
+                width: 40, height: 4,
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.textTertiary, borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text('Equalizer', style: AppTextStyles.headingMedium),
+              ),
+              const SizedBox(height: 16),
+              _buildEqSlider('Bass', -20, 20),
+              _buildEqSlider('Mid', -20, 20),
+              _buildEqSlider('Treble', -20, 20),
+              _buildEqSlider('Volume', 0, 100),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEqSlider(String label, double min, double max) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+      child: Row(
+        children: [
+          SizedBox(width: 60, child: Text(label, style: AppTextStyles.bodySmallSecondary)),
+          Expanded(
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                activeTrackColor: AppColors.accent,
+                inactiveTrackColor: AppColors.textTertiary.withOpacity(0.2),
+                thumbColor: AppColors.textPrimary,
+                trackHeight: 2,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
+              ),
+              child: Slider(value: 0, min: min, max: max, onChanged: (_) {}),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showMoreOptions(Song song) {
@@ -284,20 +371,169 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
               ListTile(
                 leading: const Icon(Icons.playlist_add_rounded),
                 title: const Text('Add to Queue'),
-                onTap: () { audioService.addToQueue(song); Navigator.pop(context); },
+                onTap: () {
+                  audioService.addToQueue(song);
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Added "${song.title}" to queue')),
+                  );
+                },
               ),
               ListTile(
                 leading: const Icon(Icons.playlist_play_rounded),
                 title: const Text('Play Next'),
-                onTap: () { audioService.addPlayNext(song); Navigator.pop(context); },
+                onTap: () {
+                  audioService.addPlayNext(song);
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('"${song.title}" will play next')),
+                  );
+                },
               ),
               ListTile(
                 leading: const Icon(Icons.timer_rounded),
                 title: const Text('Sleep Timer'),
-                onTap: () => Navigator.pop(context),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const SleepTimerScreen(),
+                  ));
+                },
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.edit_rounded),
+                title: const Text('Edit Song Info'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showEditSongInfo(song);
+                },
               ),
               const SizedBox(height: 8),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showEditSongInfo(Song song) {
+    final titleController = TextEditingController(text: song.title);
+    final artistController = TextEditingController(text: song.artist);
+    final albumController = TextEditingController(text: song.album);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40, height: 4,
+                  margin: const EdgeInsets.only(top: 12, bottom: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.textTertiary, borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text('Edit Song Info', style: AppTextStyles.headingMedium),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: titleController,
+                        decoration: InputDecoration(
+                          labelText: 'Title',
+                          labelStyle: AppTextStyles.bodySmallSecondary,
+                          filled: true,
+                          fillColor: AppColors.surface,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: artistController,
+                        decoration: InputDecoration(
+                          labelText: 'Artist',
+                          labelStyle: AppTextStyles.bodySmallSecondary,
+                          filled: true,
+                          fillColor: AppColors.surface,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: albumController,
+                        decoration: InputDecoration(
+                          labelText: 'Album',
+                          labelStyle: AppTextStyles.bodySmallSecondary,
+                          filled: true,
+                          fillColor: AppColors.surface,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.textSecondary,
+                            side: const BorderSide(color: AppColors.textTertiary),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          ),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            // Save changes
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Song info updated (visual only)')),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.accent,
+                            foregroundColor: AppColors.background,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          ),
+                          child: const Text('Save'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

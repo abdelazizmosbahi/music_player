@@ -58,6 +58,10 @@ class AudioPlayerService {
   TrackRepeatMode get repeatMode => _audioHandler.repeatMode;
   bool get shuffleEnabled => _audioHandler.shuffleEnabled;
 
+  /// Reactive streams for shuffle/repeat that notify on change.
+  Stream<bool> get shuffleStream => _audioHandler.shuffleStream;
+  Stream<TrackRepeatMode> get repeatStream => _audioHandler.repeatStream;
+
   // ─── Playback Controls ─────────────────────────────────────
 
   Future<void> play() => _audioHandler.play();
