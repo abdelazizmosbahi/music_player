@@ -5,12 +5,157 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/duration_formatter.dart';
 import '../../shared_widgets/album_art_display.dart';
+import '../../data/datasources/lyrics_parser.dart';
+import '../../data/models/lyric_line.dart';
 import '../../providers/media_provider.dart';
 import '../../services/audio_handler.dart';
+import '../../services/lyrics_sync_service.dart';
 import '../../data/models/song.dart';
 import '../lyrics/lyrics_screen.dart';
 import '../queue/queue_screen.dart';
 import '../sleep_timer/sleep_timer_screen.dart';
+
+// ─── Album Art + Lyrics Line (self-contained, no parent rebuild) ───
+
+class _AlbumArtWithLyrics extends ConsumerStatefulWidget {
+  final Song song;
+  final double artSize;
+  const _AlbumArtWithLyrics({required this.song, required this.artSize});
+
+  @override
+  ConsumerState<_AlbumArtWithLyrics> createState() => _AlbumArtWithLyricsState();
+}
+
+class _AlbumArtWithLyricsState extends ConsumerState<_AlbumArtWithLyrics> {
+  final LyricsSyncService _lyricsSync = LyricsSyncService();
+  int _currentLineIndex = -1;
+
+  @override
+  void dispose() {
+    _lyricsSync.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final lyricsAsync = ref.watch(currentSongLyricsProvider);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Album art — only rebuilds when song.id changes
+        Expanded(
+          child: Center(
+            child: KeyedSubtree(
+              key: ValueKey('art_${widget.song.id}'),
+              child: Hero(
+                tag: 'album_art_${widget.song.id}',
+                child: AlbumArtDisplay(
+                  songId: int.tryParse(widget.song.id),
+                  title: widget.song.title,
+                  size: widget.artSize,
+                  borderRadius: 20,
+                ),
+              ),
+            ),
+          ),
+        ),
+        // Current lyrics line — syncs with position internally
+        lyricsAsync.when(
+          data: (lyrics) {
+            if (lyrics.isEmpty) return const SizedBox(height: 40);
+            return _CurrentLyricLine(
+              lyrics: lyrics,
+              lyricsSync: _lyricsSync,
+              onLineChanged: (idx) {
+                if (idx != _currentLineIndex) {
+                  setState(() => _currentLineIndex = idx);
+                }
+              },
+            );
+          },
+          loading: () => const SizedBox(height: 40),
+          error: (_, __) => const SizedBox(height: 40),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Current Lyric Line (listens to position internally) ──────────
+
+class _CurrentLyricLine extends ConsumerStatefulWidget {
+  final List<LyricLine> lyrics;
+  final LyricsSyncService lyricsSync;
+  final ValueChanged<int> onLineChanged;
+  const _CurrentLyricLine({
+    required this.lyrics,
+    required this.lyricsSync,
+    required this.onLineChanged,
+  });
+
+  @override
+  ConsumerState<_CurrentLyricLine> createState() => _CurrentLyricLineState();
+}
+
+class _CurrentLyricLineState extends ConsumerState<_CurrentLyricLine> {
+  @override
+  void initState() {
+    super.initState();
+    widget.lyricsSync.setLyrics(widget.lyrics);
+  }
+
+  @override
+  void didUpdateWidget(covariant _CurrentLyricLine oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.lyrics != widget.lyrics) {
+      widget.lyricsSync.setLyrics(widget.lyrics);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final positionAsync = ref.watch(playerPositionProvider);
+    final position = positionAsync.valueOrNull ?? Duration.zero;
+    widget.lyricsSync.updatePosition(position);
+    final idx = widget.lyricsSync.currentLineIndex;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (idx >= 0) widget.onLineChanged(idx);
+    });
+
+    final text = (idx >= 0 && idx < widget.lyrics.length)
+        ? widget.lyrics[idx].text
+        : '';
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => const LyricsScreen(),
+        ));
+      },
+      child: Container(
+        height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        alignment: Alignment.center,
+        child: Text(
+          text.isNotEmpty ? text : 'Tap for lyrics',
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: text.isNotEmpty
+                ? AppColors.textPrimary
+                : AppColors.textTertiary.withOpacity(0.5),
+            fontStyle: text.isEmpty ? FontStyle.italic : FontStyle.normal,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Main Now Playing Screen ─────────────────────────────────────
 
 class NowPlayingScreen extends ConsumerStatefulWidget {
   const NowPlayingScreen({super.key});
@@ -69,22 +214,10 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
             children: [
               _buildTopBar(context, song),
               const SizedBox(height: 8),
+              // Album art + live lyrics line — self-contained, won't flash
               Expanded(
                 flex: 5,
-                child: Center(
-                  child: KeyedSubtree(
-                    key: ValueKey('art_${song.id}'),
-                    child: Hero(
-                      tag: 'album_art_${song.id}',
-                      child: AlbumArtDisplay(
-                        songId: int.tryParse(song.id),
-                        title: song.title,
-                        size: artSize,
-                        borderRadius: 20,
-                      ),
-                    ),
-                  ),
-                ),
+                child: _AlbumArtWithLyrics(song: song, artSize: artSize),
               ),
               Expanded(flex: 2, child: _buildSongInfo(song)),
               _buildProgressBar(sliderPosition, duration, progress, audioService),
