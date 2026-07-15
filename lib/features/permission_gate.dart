@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:permission_handler/permission_handler.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text_styles.dart';
-import '../../data/datasources/local_media_scanner.dart';
-import '../../providers/media_provider.dart';
+import '../core/theme/app_colors.dart';
+import '../core/theme/app_text_styles.dart';
+import '../data/datasources/local_media_scanner.dart';
+import '../providers/media_provider.dart';
 
 class PermissionGate extends ConsumerStatefulWidget {
   final Widget child;

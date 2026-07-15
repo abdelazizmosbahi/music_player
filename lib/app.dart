@@ -17,7 +17,8 @@ class _LocalWaveAppState extends ConsumerState<LocalWaveApp> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(milliseconds: 1500), () {
+    // Dismiss splash as soon as first frame renders
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) setState(() => _showSplash = false);
     });
   }

@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_service/audio_service.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'app.dart';
 import 'providers/media_provider.dart';
 import 'services/audio_handler.dart';
@@ -47,6 +49,11 @@ Future<void> main() async {
 
 Future<void> _initAudioService() async {
   try {
+    // Request notification permission on Android 13+
+    if (Platform.isAndroid) {
+      await Permission.notification.request();
+    }
+
     final audioHandler = await AudioService.init<LocalWaveAudioHandler>(
       builder: () => LocalWaveAudioHandler(),
       config: const AudioServiceConfig(

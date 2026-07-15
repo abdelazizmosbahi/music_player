@@ -376,13 +376,13 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _BottomAction(icon: Icons.lyrics_rounded, label: 'Lyrics', onTap: () {
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LyricsScreen()));
+            Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(builder: (_) => const LyricsScreen()));
           }),
           _BottomAction(icon: Icons.share_rounded, label: 'Share', onTap: () {
             if (song != null) _shareSong(song);
           }),
           _BottomAction(icon: Icons.queue_music_rounded, label: 'Queue', onTap: () {
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QueueScreen()));
+            Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(builder: (_) => const QueueScreen()));
           }),
           _BottomAction(icon: Icons.equalizer_rounded, label: 'EQ', onTap: () {
             _showEqualizer();
@@ -518,7 +518,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                 title: const Text('Sleep Timer'),
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.of(context).push(MaterialPageRoute(
+                  Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(
                     builder: (_) => const SleepTimerScreen(),
                   ));
                 },
