@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/duration_formatter.dart';
@@ -11,6 +14,7 @@ import '../../providers/media_provider.dart';
 import '../../services/audio_handler.dart';
 import '../../services/lyrics_sync_service.dart';
 import '../../data/models/song.dart';
+import '../../data/repositories/media_repository.dart';
 import '../lyrics/lyrics_screen.dart';
 import '../queue/queue_screen.dart';
 import '../sleep_timer/sleep_timer_screen.dart';
@@ -540,121 +544,269 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
     final titleController = TextEditingController(text: song.title);
     final artistController = TextEditingController(text: song.artist);
     final albumController = TextEditingController(text: song.album);
+    final genreController = TextEditingController(text: song.genre);
+    final yearController = TextEditingController(
+      text: song.year > 0 ? song.year.toString() : '',
+    );
+    final lyricsController = TextEditingController();
+    String? pickedArtPath;
+    bool _lyricsLoaded = false;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40, height: 4,
-                  margin: const EdgeInsets.only(top: 12, bottom: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.textTertiary, borderRadius: BorderRadius.circular(2),
-                  ),
+      builder: (_) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          // Load lyrics lazily
+          if (!_lyricsLoaded) {
+            _lyricsLoaded = true;
+            savedLyricsPath(song.id).then((path) async {
+              final file = File(path);
+              if (await file.exists()) {
+                final content = await file.readAsString();
+                if (content.isNotEmpty && lyricsController.text.isEmpty) {
+                  setSheetState(() => lyricsController.text = content);
+                }
+              }
+            });
+          }
+
+          return Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+            child: Container(
+              height: MediaQuery.of(context).size.height * 0.85,
+              decoration: const BoxDecoration(
+                color: AppColors.card,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: SafeArea(
+                child: Column(
+                  children: [
+                    Container(
+                      width: 40, height: 4,
+                      margin: const EdgeInsets.only(top: 12, bottom: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.textTertiary, borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text('Edit Song Info', style: AppTextStyles.headingMedium),
+                    ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Cover Art
+                            Center(
+                              child: GestureDetector(
+                                onTap: () async {
+                                  final result = await FilePicker.platform.pickFiles(
+                                    type: FileType.image,
+                                  );
+                                  if (result != null && result.files.single.path != null) {
+                                    setSheetState(() => pickedArtPath = result.files.single.path);
+                                  }
+                                },
+                                child: Container(
+                                  width: 120, height: 120,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    color: AppColors.surface,
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: pickedArtPath != null
+                                      ? Image.file(File(pickedArtPath!), fit: BoxFit.cover)
+                                      : Stack(
+                                          alignment: Alignment.center,
+                                          children: [
+                                            AlbumArtDisplay(
+                                              songId: int.tryParse(song.id),
+                                              title: song.title,
+                                              size: 120,
+                                              borderRadius: 12,
+                                            ),
+                                            Container(
+                                              color: Colors.black45,
+                                              child: const Icon(
+                                                Icons.camera_alt_rounded,
+                                                color: Colors.white, size: 28,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Center(
+                              child: Text(
+                                'Tap to change cover art',
+                                style: AppTextStyles.bodySmallSecondary.copyWith(
+                                  color: AppColors.textTertiary),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            _buildEditField(titleController, 'Title'),
+                            const SizedBox(height: 12),
+                            _buildEditField(artistController, 'Artist'),
+                            const SizedBox(height: 12),
+                            _buildEditField(albumController, 'Album'),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(child: _buildEditField(genreController, 'Genre')),
+                                const SizedBox(width: 12),
+                                Expanded(child: _buildEditField(yearController, 'Year',
+                                  keyboardType: TextInputType.number)),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Text('Lyrics', style: AppTextStyles.labelLarge.copyWith(
+                              color: AppColors.textSecondary)),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: lyricsController,
+                              maxLines: 6,
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                color: AppColors.textPrimary),
+                              decoration: InputDecoration(
+                                hintText: 'Paste lyrics (LRC or plain text)',
+                                hintStyle: AppTextStyles.bodyMediumSecondary.copyWith(
+                                  color: AppColors.textTertiary.withOpacity(0.6)),
+                                filled: true,
+                                fillColor: AppColors.surface,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide.none,
+                                ),
+                                contentPadding: const EdgeInsets.all(12),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.textSecondary,
+                                side: const BorderSide(color: AppColors.textTertiary),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                              ),
+                              child: const Text('Cancel'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                // Save all edits
+                                final title = titleController.text.trim();
+                                final artist = artistController.text.trim();
+                                final album = albumController.text.trim();
+                                final genre = genreController.text.trim();
+                                final year = int.tryParse(yearController.text.trim()) ?? 0;
+                                final lyricsText = lyricsController.text.trim();
+
+                                if (title.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Title cannot be empty')),
+                                  );
+                                  return;
+                                }
+
+                                // Save cover art to app docs
+                                String? savedArtPath;
+                                if (pickedArtPath != null) {
+                                  final appDir = await getApplicationDocumentsDirectory();
+                                  final artDir = Directory('${appDir.path}/cover_art');
+                                  if (!await artDir.exists()) await artDir.create(recursive: true);
+                                  final ext = pickedArtPath!.split('.').last;
+                                  final dest = File('${artDir.path}/song_${song.id}.$ext');
+                                  await File(pickedArtPath!).copy(dest.path);
+                                  savedArtPath = dest.path;
+                                }
+
+                                // Update song model
+                                final updated = song.copyWith(
+                                  title: title,
+                                  artist: artist,
+                                  album: album,
+                                  genre: genre,
+                                  year: year,
+                                  albumArtPath: savedArtPath ?? song.albumArtPath,
+                                  clearAlbumArt: false,
+                                );
+
+                                // Save to DB
+                                final repo = ref.read(mediaRepositoryProvider);
+                                await repo.updateSong(updated);
+
+                                // Update handler queue
+                                ref.read(audioServiceProvider).updateCurrentSongInfo(updated);
+
+                                // Save lyrics if provided
+                                if (lyricsText.isNotEmpty) {
+                                  final lyrics = LrcParser.autoParse(lyricsText);
+                                  if (lyrics.isNotEmpty) {
+                                    final path = await savedLyricsPath(song.id);
+                                    await LrcParser.saveFile(path, lyrics);
+                                    ref.invalidate(currentSongLyricsProvider);
+                                  }
+                                }
+
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Song info updated')),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.accent,
+                                foregroundColor: AppColors.background,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                              ),
+                              child: const Text('Save'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text('Edit Song Info', style: AppTextStyles.headingMedium),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    children: [
-                      TextField(
-                        controller: titleController,
-                        decoration: InputDecoration(
-                          labelText: 'Title',
-                          labelStyle: AppTextStyles.bodySmallSecondary,
-                          filled: true,
-                          fillColor: AppColors.surface,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: artistController,
-                        decoration: InputDecoration(
-                          labelText: 'Artist',
-                          labelStyle: AppTextStyles.bodySmallSecondary,
-                          filled: true,
-                          fillColor: AppColors.surface,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: albumController,
-                        decoration: InputDecoration(
-                          labelText: 'Album',
-                          labelStyle: AppTextStyles.bodySmallSecondary,
-                          filled: true,
-                          fillColor: AppColors.surface,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.textSecondary,
-                            side: const BorderSide(color: AppColors.textTertiary),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          ),
-                          child: const Text('Cancel'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            // Save changes
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Song info updated (visual only)')),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.accent,
-                            foregroundColor: AppColors.background,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          ),
-                          child: const Text('Save'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildEditField(TextEditingController controller, String label,
+      {TextInputType keyboardType = TextInputType.text}) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: AppTextStyles.bodySmallSecondary,
+        filled: true,
+        fillColor: AppColors.surface,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide.none,
         ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       ),
     );
   }

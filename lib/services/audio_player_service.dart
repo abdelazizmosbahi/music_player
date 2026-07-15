@@ -126,6 +126,11 @@ class AudioPlayerService {
 
   Future<void> clearQueue() => _audioHandler.clearQueue();
 
+  /// Updates song metadata in the handler's in-memory queue.
+  void updateCurrentSongInfo(Song updated) {
+    _audioHandler.customAction('updateSongInfo', {'song': updated});
+  }
+
   // ─── Shuffle & Repeat ───────────────────────────────────────
 
   void toggleShuffle() {

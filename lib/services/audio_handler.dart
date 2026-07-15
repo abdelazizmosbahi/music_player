@@ -32,6 +32,10 @@ class LocalWaveAudioHandler extends BaseAudioHandler with SeekHandler {
   LocalWaveAudioHandler.stub() : _isStub = true;
 
   void _init() {
+    // Emit initial state so StreamProviders get a value immediately
+    _shuffleController.add(_shuffleEnabled);
+    _repeatController.add(_repeatMode);
+
     // Listen to player state changes and broadcast them
     _player.playbackEventStream.map(_transformEvent).pipe(playbackState);
 
@@ -335,6 +339,25 @@ class LocalWaveAudioHandler extends BaseAudioHandler with SeekHandler {
         final song = (args as Map<String, dynamic>)['song'] as Song;
         await addToQueue(song);
         break;
+      case 'updateSongInfo':
+        final updated = (args as Map<String, dynamic>)['song'] as Song;
+        _updateSongInQueue(updated);
+        break;
+    }
+  }
+
+  /// Updates a song's metadata in the in-memory queue and refreshes media item.
+  void _updateSongInQueue(Song updated) {
+    if (_currentIndex >= 0 && _currentIndex < _queue.length && _queue[_currentIndex].id == updated.id) {
+      _queue[_currentIndex] = updated;
+      mediaItem.add(_songToMediaItem(updated));
+    } else {
+      for (int i = 0; i < _queue.length; i++) {
+        if (_queue[i].id == updated.id) {
+          _queue[i] = updated;
+          break;
+        }
+      }
     }
   }
 

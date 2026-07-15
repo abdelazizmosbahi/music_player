@@ -23,6 +23,9 @@ class DatabaseHelper {
       version: AppConstants.dbVersion,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
+      onConfigure: (db) async {
+        await db.execute('PRAGMA foreign_keys = ON');
+      },
     );
   }
 
@@ -39,7 +42,9 @@ class DatabaseHelper {
         durationMs INTEGER NOT NULL DEFAULT 0,
         dateAdded TEXT NOT NULL,
         isFavorite INTEGER NOT NULL DEFAULT 0,
-        playCount INTEGER NOT NULL DEFAULT 0
+        playCount INTEGER NOT NULL DEFAULT 0,
+        genre TEXT NOT NULL DEFAULT '',
+        year INTEGER NOT NULL DEFAULT 0
       )
     ''');
 
@@ -106,7 +111,10 @@ class DatabaseHelper {
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // Handle future migrations here
+    if (oldVersion < 2) {
+      await db.execute("ALTER TABLE songs ADD COLUMN genre TEXT NOT NULL DEFAULT ''");
+      await db.execute('ALTER TABLE songs ADD COLUMN year INTEGER NOT NULL DEFAULT 0');
+    }
   }
 
   // Generic CRUD helpers

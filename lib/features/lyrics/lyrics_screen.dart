@@ -31,11 +31,13 @@ class _LyricsScreenState extends ConsumerState<LyricsScreen> {
 
   void _scrollToLine(int index) {
     if (!_scrollController.hasClients || index < 0) return;
-    final targetOffset = (index * 60.0) - 150.0;
+    final viewportHeight = _scrollController.position.viewportDimension;
+    final itemExtent = 52.0;
+    final targetOffset = (index * itemExtent) - (viewportHeight / 2) + (itemExtent / 2);
     _scrollController.animateTo(
       targetOffset.clamp(0.0, _scrollController.position.maxScrollExtent),
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeInOutCubic,
     );
   }
 
@@ -195,7 +197,8 @@ class _LyricsScreenState extends ConsumerState<LyricsScreen> {
   Widget _buildLyricsList(List<LyricLine> lyrics, int activeIndex) {
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      // Add top/bottom padding so first/last lines can scroll to center
       itemCount: lyrics.length,
       itemBuilder: (context, index) {
         final line = lyrics[index];
@@ -209,11 +212,11 @@ class _LyricsScreenState extends ConsumerState<LyricsScreen> {
             ref.read(audioServiceProvider).seek(line.timestamp);
           },
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeInOutCubic,
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
             child: AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 300),
+              duration: const Duration(milliseconds: 350),
               style: isActive
                   ? AppTextStyles.lyricActive
                   : isPast ? AppTextStyles.lyricPast : AppTextStyles.lyricInactive,
@@ -221,7 +224,7 @@ class _LyricsScreenState extends ConsumerState<LyricsScreen> {
             ),
           ),
         ).animate().fadeIn(
-              delay: Duration(milliseconds: (index * 20).clamp(0, 400)),
+              delay: Duration(milliseconds: (index * 15).clamp(0, 300)),
               duration: 300.ms,
             );
       },

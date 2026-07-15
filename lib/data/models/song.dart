@@ -9,6 +9,8 @@ class Song {
   final DateTime dateAdded;
   final bool isFavorite;
   final int playCount;
+  final String genre;
+  final int year;
 
   const Song({
     required this.id,
@@ -21,6 +23,8 @@ class Song {
     required this.dateAdded,
     this.isFavorite = false,
     this.playCount = 0,
+    this.genre = '',
+    this.year = 0,
   });
 
   Song copyWith({
@@ -35,6 +39,8 @@ class Song {
     DateTime? dateAdded,
     bool? isFavorite,
     int? playCount,
+    String? genre,
+    int? year,
   }) {
     return Song(
       id: id ?? this.id,
@@ -47,6 +53,8 @@ class Song {
       dateAdded: dateAdded ?? this.dateAdded,
       isFavorite: isFavorite ?? this.isFavorite,
       playCount: playCount ?? this.playCount,
+      genre: genre ?? this.genre,
+      year: year ?? this.year,
     );
   }
 
@@ -62,6 +70,8 @@ class Song {
       'dateAdded': dateAdded.toIso8601String(),
       'isFavorite': isFavorite ? 1 : 0,
       'playCount': playCount,
+      'genre': genre,
+      'year': year,
     };
   }
 
@@ -77,6 +87,8 @@ class Song {
       dateAdded: DateTime.tryParse(map['dateAdded'] as String? ?? '') ?? DateTime.now(),
       isFavorite: (map['isFavorite'] as int? ?? 0) == 1,
       playCount: (map['playCount'] as int?) ?? 0,
+      genre: (map['genre'] as String?) ?? '',
+      year: (map['year'] as int?) ?? 0,
     );
   }
 

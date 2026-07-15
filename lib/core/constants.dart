@@ -7,7 +7,7 @@ class AppConstants {
 
   // Database
   static const String dbName = 'localwave.db';
-  static const int dbVersion = 1;
+  static const int dbVersion = 2;
 
   // Audio
   static const Duration crossfadeDuration = Duration(seconds: 3);

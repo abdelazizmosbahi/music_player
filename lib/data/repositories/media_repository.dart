@@ -83,6 +83,11 @@ class MediaRepository {
     return maps.isNotEmpty ? Song.fromMap(maps.first) : null;
   }
 
+  /// Updates a song's metadata in the database.
+  Future<void> updateSong(Song song) async {
+    await _db.update('songs', song.toMap(), song.id);
+  }
+
   /// Increments the play count for a song.
   Future<void> incrementPlayCount(String songId) async {
     final db = await _db.database;
