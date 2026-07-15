@@ -28,7 +28,6 @@ class _AlbumArtWithLyrics extends ConsumerStatefulWidget {
 
 class _AlbumArtWithLyricsState extends ConsumerState<_AlbumArtWithLyrics> {
   final LyricsSyncService _lyricsSync = LyricsSyncService();
-  int _currentLineIndex = -1;
 
   @override
   void dispose() {
@@ -43,7 +42,6 @@ class _AlbumArtWithLyricsState extends ConsumerState<_AlbumArtWithLyrics> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Album art — only rebuilds when song.id changes
         Expanded(
           child: Center(
             child: KeyedSubtree(
@@ -60,18 +58,12 @@ class _AlbumArtWithLyricsState extends ConsumerState<_AlbumArtWithLyrics> {
             ),
           ),
         ),
-        // Current lyrics line — syncs with position internally
         lyricsAsync.when(
           data: (lyrics) {
             if (lyrics.isEmpty) return const SizedBox(height: 40);
             return _CurrentLyricLine(
               lyrics: lyrics,
               lyricsSync: _lyricsSync,
-              onLineChanged: (idx) {
-                if (idx != _currentLineIndex) {
-                  setState(() => _currentLineIndex = idx);
-                }
-              },
             );
           },
           loading: () => const SizedBox(height: 40),
@@ -87,11 +79,9 @@ class _AlbumArtWithLyricsState extends ConsumerState<_AlbumArtWithLyrics> {
 class _CurrentLyricLine extends ConsumerStatefulWidget {
   final List<LyricLine> lyrics;
   final LyricsSyncService lyricsSync;
-  final ValueChanged<int> onLineChanged;
   const _CurrentLyricLine({
     required this.lyrics,
     required this.lyricsSync,
-    required this.onLineChanged,
   });
 
   @override
@@ -119,10 +109,6 @@ class _CurrentLyricLineState extends ConsumerState<_CurrentLyricLine> {
     final position = positionAsync.valueOrNull ?? Duration.zero;
     widget.lyricsSync.updatePosition(position);
     final idx = widget.lyricsSync.currentLineIndex;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (idx >= 0) widget.onLineChanged(idx);
-    });
 
     final text = (idx >= 0 && idx < widget.lyrics.length)
         ? widget.lyrics[idx].text

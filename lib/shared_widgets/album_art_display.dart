@@ -1,9 +1,10 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import '../core/theme/app_colors.dart';
 import '../services/dynamic_color_service.dart';
 
-class AlbumArtDisplay extends StatelessWidget {
+class AlbumArtDisplay extends StatefulWidget {
   final String? artPath;
   final String? title;
   final int? songId;
@@ -24,15 +25,72 @@ class AlbumArtDisplay extends StatelessWidget {
   });
 
   @override
+  State<AlbumArtDisplay> createState() => _AlbumArtDisplayState();
+}
+
+class _AlbumArtDisplayState extends State<AlbumArtDisplay>
+    with AutomaticKeepAliveClientMixin {
+  Uint8List? _artBytes;
+  bool _isLoading = false;
+  int? _loadedSongId;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadArtwork();
+  }
+
+  @override
+  void didUpdateWidget(covariant AlbumArtDisplay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.songId != widget.songId) {
+      _artBytes = null;
+      _loadedSongId = null;
+      _loadArtwork();
+    }
+  }
+
+  Future<void> _loadArtwork() async {
+    if (widget.songId == null || _isLoading) return;
+    if (_loadedSongId == widget.songId && _artBytes != null) return;
+
+    _isLoading = true;
+    try {
+      final onAudioQuery = OnAudioQuery();
+      final bytes = await onAudioQuery.queryArtwork(
+        widget.songId!,
+        ArtworkType.AUDIO,
+        size: 512,
+        quality: 100,
+      );
+      if (mounted && _loadedSongId != widget.songId) {
+        setState(() {
+          _artBytes = bytes;
+          _loadedSongId = widget.songId;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final heroTag = enableHero && title != null ? 'album_art_$title' : null;
+    super.build(context);
+    final heroTag = widget.enableHero && widget.title != null
+        ? 'album_art_${widget.title}'
+        : null;
 
     Widget child = Container(
-      width: size,
-      height: size,
+      width: widget.size,
+      height: widget.size,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(borderRadius),
-        boxShadow: showShadow
+        borderRadius: BorderRadius.circular(widget.borderRadius),
+        boxShadow: widget.showShadow
             ? [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.5),
@@ -44,7 +102,7 @@ class AlbumArtDisplay extends StatelessWidget {
             : null,
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(borderRadius),
+        borderRadius: BorderRadius.circular(widget.borderRadius),
         child: _buildContent(),
       ),
     );
@@ -57,28 +115,25 @@ class AlbumArtDisplay extends StatelessWidget {
   }
 
   Widget _buildContent() {
-    if (songId != null) {
-      return QueryArtworkWidget(
-        id: songId!,
-        type: ArtworkType.AUDIO,
-        artworkBorder: BorderRadius.circular(borderRadius),
-        artworkWidth: size,
-        artworkHeight: size,
-        size: 512,
-        quality: 100,
-        artworkQuality: FilterQuality.high,
-        nullArtworkWidget: _buildPlaceholder(),
+    if (_artBytes != null && _artBytes!.isNotEmpty) {
+      return Image.memory(
+        _artBytes!,
+        width: widget.size,
+        height: widget.size,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+        filterQuality: FilterQuality.high,
       );
     }
     return _buildPlaceholder();
   }
 
   Widget _buildPlaceholder() {
-    final gradient = DynamicColorService.gradientFromTitle(title ?? 'music');
+    final gradient = DynamicColorService.gradientFromTitle(widget.title ?? 'music');
 
     return Container(
-      width: size,
-      height: size,
+      width: widget.size,
+      height: widget.size,
       decoration: BoxDecoration(gradient: gradient),
       child: Stack(
         children: [
@@ -91,7 +146,7 @@ class AlbumArtDisplay extends StatelessWidget {
             child: Icon(
               Icons.music_note_rounded,
               color: Colors.white.withOpacity(0.45),
-              size: size * 0.3,
+              size: widget.size * 0.3,
             ),
           ),
         ],
